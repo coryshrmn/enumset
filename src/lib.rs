@@ -477,12 +477,6 @@ macro_rules! enum_set_type_internal {
                 bits as $repr
             }
         }
-        impl <O : Into<$crate::EnumSet<$enum_name>>> ::std::ops::Sub<O> for $enum_name {
-            type Output = $crate::EnumSet<$enum_name>;
-            fn sub(self, other: O) -> Self::Output {
-                $crate::EnumSet::only(self) - other.into()
-            }
-        }
         impl <O : Into<$crate::EnumSet<$enum_name>>> ::std::ops::BitAnd<O> for $enum_name {
             type Output = $crate::EnumSet<$enum_name>;
             fn bitand(self, other: O) -> Self::Output {
@@ -521,7 +515,7 @@ macro_rules! enum_set_type_internal {
 /// contain data.
 ///
 /// [`Copy`], [`Clone`], [`PartialOrd`], [`Ord`], [`PartialEq`], [`Eq`], [`Hash`], [`Debug`],
-/// [`Sub`], [`BitAnd`], [`BitOr`], [`BitXor`], and [`Not`] are automatically derived for the enum.
+/// [`BitAnd`], [`BitOr`], [`BitXor`], and [`Not`] are automatically derived for the enum.
 ///
 /// These impls, in general, behave as if the enum variant was an [`EnumSet`] with a single value,
 /// as those created by [`EnumSet::only`].
@@ -572,7 +566,7 @@ macro_rules! enum_set_type {
 /// contain data.
 ///
 /// [`Copy`], [`Clone`], [`PartialOrd`], [`Ord`], [`PartialEq`], [`Eq`], [`Hash`], [`Debug`],
-/// [`Sub`], [`BitAnd`], [`BitOr`], [`BitXor`], and [`Not`] are automatically derived for the enum.
+/// [`BitAnd`], [`BitOr`], [`BitXor`], and [`Not`] are automatically derived for the enum.
 ///
 /// These impls, in general, behave as if the enum variant was an [`EnumSet`] with a single value,
 /// as those created by [`EnumSet::only`].
