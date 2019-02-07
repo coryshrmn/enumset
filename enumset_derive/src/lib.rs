@@ -25,7 +25,7 @@ fn error(_: Span, data: &str) -> TokenStream {
 }
 
 fn enum_set_type_impl(
-    name: &Ident, all_variants: u128, repr: Ident, no_ops: bool, no_derives: bool,
+    name: &Ident, all_variants: u128, repr: Ident, no_ops: bool, no_sub: bool, no_derives: bool,
 ) -> SynTokenStream {
     let typed_enumset = quote!(::enumset::EnumSet<#name>);
     let core = quote!(::enumset::internal::core);
@@ -37,12 +37,6 @@ fn enum_set_type_impl(
         quote! {}
     } else {
         quote! {
-            impl <O : Into<#typed_enumset>> #core::ops::Sub<O> for #name {
-                type Output = #typed_enumset;
-                fn sub(self, other: O) -> Self::Output {
-                    ::enumset::EnumSet::only(self) - other.into()
-                }
-            }
             impl <O : Into<#typed_enumset>> #core::ops::BitAnd<O> for #name {
                 type Output = #typed_enumset;
                 fn bitand(self, other: O) -> Self::Output {
@@ -70,6 +64,19 @@ fn enum_set_type_impl(
             impl #core::cmp::PartialEq<#typed_enumset> for #name {
                 fn eq(&self, other: &#typed_enumset) -> bool {
                     ::enumset::EnumSet::only(*self) == *other
+                }
+            }
+        }
+    };
+
+    let sub = if no_ops || no_sub {
+        quote! {}
+    } else {
+        quote! {
+            impl <O : Into<#typed_enumset>> #core::ops::Sub<O> for #name {
+                type Output = #typed_enumset;
+                fn sub(self, other: O) -> Self::Output {
+                    ::enumset::EnumSet::only(self) - other.into()
                 }
             }
         }
@@ -123,11 +130,12 @@ fn enum_set_type_impl(
         }
 
         #ops
+        #sub
         #derives
     }
 }
 
-#[proc_macro_derive(EnumSetType, attributes(enumset_no_ops, enumset_no_derives))]
+#[proc_macro_derive(EnumSetType, attributes(enumset_no_ops, enumset_no_sub, enumset_no_derives))]
 pub fn derive_enum_set_type(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input);
     if let Data::Enum(data) = input.data {
@@ -191,6 +199,7 @@ pub fn derive_enum_set_type(input: TokenStream) -> TokenStream {
             }, Span::call_site());
 
             let mut no_ops = false;
+            let mut no_sub = false;
             let mut no_derives = false;
 
             for attr in &input.attrs {
@@ -203,6 +212,12 @@ pub fn derive_enum_set_type(input: TokenStream) -> TokenStream {
                         return error(span, "`#[enumset_no_ops]` takes no arguments.")
                     }
                 }
+                if segments.len() == 1 && segments[0].ident.to_string() == "enumset_no_sub" {
+                    no_sub = true;
+                    if !tts.is_empty() {
+                        return error(span, "`#[enumset_no_sub]` takes no arguments.")
+                    }
+                }
                 if segments.len() == 1 && segments[0].ident.to_string() == "enumset_no_derives" {
                     no_derives = true;
                     if !tts.is_empty() {
@@ -212,7 +227,7 @@ pub fn derive_enum_set_type(input: TokenStream) -> TokenStream {
             }
 
             enum_set_type_impl(
-                &input.ident, all_variants, repr, no_ops, no_derives,
+                &input.ident, all_variants, repr, no_ops, no_sub, no_derives,
             ).into()
         }
     } else {
